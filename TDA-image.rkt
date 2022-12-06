@@ -17,8 +17,7 @@
              (integer? (cadr I))
              (< -1 (cadr I))
              (not (null? (cddr I)))
-             (list? (caddr I))
-             (null? (cdddr I)))
+             (list? (caddr I)))
         #t
         #f)))
 
@@ -33,7 +32,8 @@
 (define bitmap?
   (lambda (I)
     (if (and (image? I)
-             (bitmap?Rec (caddr I)))
+             (bitmap?Rec (caddr I))
+             (null? (cdddr I)))
         #t
         #f)))
              
@@ -48,7 +48,8 @@
 (define pixmap?
   (lambda (I)
     (if (and (image? I)
-             (pixmap?Rec (caddr I)))
+             (pixmap?Rec (caddr I))
+             (null? (cdddr I)))
         #t
         #f)))
 
@@ -63,6 +64,37 @@
 (define hexmap?
   (lambda (I)
     (if (and (image? I)
-             (hexmap?Rec (caddr I)))
+             (hexmap?Rec (caddr I))
+             (null? (cdddr I)))
+        #t
+        #f)))
+
+(define compPix?
+  (lambda (P)
+    (if (and (not (null? P))
+             (integer? (car P))
+             (< -1 (car P))
+             (not (null? (cdr P)))
+             (integer? (cadr P))
+             (< -1 (cadr P))
+             (not (null? (cddr P)))
+             (integer? (caddr P))
+             (null? (cdddr P)))
+        #t
+        #f)))
+
+(define compressed?Rec
+  (lambda (L)
+    (if (null? L)
+        #t
+        (if (compPix? (car L))
+            (compressed?Rec (cdr L))
+            #f))))
+
+(define compressed?
+  (lambda (I)
+    (if (and (image? I)
+             (not (null? (cdddr I)))
+             (compressed?Rec (cdr (cadddr I))))
         #t
         #f)))
