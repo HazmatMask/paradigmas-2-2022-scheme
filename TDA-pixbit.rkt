@@ -5,7 +5,7 @@
     (list XPos YPos Value Depth)))
 
 (define pixbit?
-  (lambda PB
+  (lambda (PB)
         (if (and (not (null? PB))
              (integer? (car PB))
              (> (car PB) -1)
@@ -14,27 +14,27 @@
              (> (cadr PB) -1)
              (not (null? (cddr PB)))
              (integer? (caddr PB))
-             (or (= 1 (caddr PB)) (= 0 caddr PB))
+             (or (= 1 (caddr PB)) (= 0 (caddr PB)))
              (not (null? (cdddr PB)))
              (integer? (cadddr PB))
              (null? (cddddr PB)))
-        #t
+            #t
         #f)))
 
 (define select_pixbit_x
-  (lambda PB
+  (lambda (PB)
     (car PB)))
 
 (define select_pixbit_y
-  (lambda PB
+  (lambda (PB)
     (cadr PB)))
 
 (define select_pixbit_value
-  (lambda PB
+  (lambda (PB)
     (caddr PB)))
 
 (define select_pixbit_depth
-  (lambda PB
+  (lambda (PB)
     (cadddr PB)))
 
 (define mod_pixbit_x
