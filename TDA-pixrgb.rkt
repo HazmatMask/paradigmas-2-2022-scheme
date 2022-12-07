@@ -33,13 +33,21 @@
   (lambda (PR)
     (cadr PR)))
 
-(define select_pixrgb_value
+(define select_pixrgb_red
   (lambda (PR)
     (caddr PR)))
 
-(define select_pixrgb_depth
+(define select_pixrgb_green
   (lambda (PR)
     (cadddr PR)))
+
+(define select_pixrgb_blue
+  (lambda (PR)
+    (car (cddddr PR))))
+
+(define select_pixrgb_depth
+  (lambda (PR)
+    (cadr (cddddr PR))))
 
 (define mod_pixrgb_x
   (lambda (PR newX)
@@ -49,12 +57,20 @@
   (lambda (PR newY)
     (cons (car PR) (cons newY (cddr PR)))))
 
-(define mod_pixrgb_value
-  (lambda (PR newValue)
-    (cons (car PR) (cons (cadr PR) (cons newValue (cdddr PR))))))
+(define mod_pixrgb_red
+  (lambda (PR newRed)
+    (cons (car PR) (cons (cadr PR) (cons newRed (cdddr PR))))))
+
+(define mod_pixrgb_green
+  (lambda (PR newGreen)
+    (cons (car PR) (cons (cadr PR) (cons (caddr PR) (cons newGreen (cddddr PR)))))))
+
+(define mod_pixrgb_blue
+  (lambda (PR newBlue)
+    (cons (car PR) (cons (cadr PR) (cons (caddr PR) (cons (cadddr PR) (cons newBlue (cdr (cddddr PR)))))))))
 
 (define mod_pixrgb_depth
   (lambda (PR newDepth)
-    (cons (car PR) (cons (cadr PR) (cons (caddr PR) (cons newDepth (cddddr PR)))))))
+    (cons (car PR) (cons (cadr PR) (cons (caddr PR) (cons (cadddr PR) (cons (car (cddddr PR)) (cons newDepth (cddr (cddddr PR))))))))))
 
 (provide (all-defined-out))
