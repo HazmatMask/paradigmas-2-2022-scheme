@@ -99,6 +99,10 @@
         #t
         #f)))
 
+(define create_pix
+  (lambda (posX posY Content)
+    (list posX posY Content)))
+
 (define get_pix_x
   (lambda (P)
     (car P)))
@@ -106,6 +110,10 @@
 (define get_pix_y
   (lambda (P)
     (cadr P)))
+
+(define get_pix_depth
+  (lambda (P)
+    (cadddr P)))
 
 (define get_image_pixels
   (lambda (I)
@@ -556,3 +564,122 @@
                 (string-append (image->stringBack Image) "\n\n" (hexmap->string (sort_Image Image)))
                 #f)))))
 
+(define createBaseImage
+  (lambda (CurrentX CurrentY XSize YSize BasePix Depth ImageAux)
+    (if (and (= CurrentX XSize) (= 0 CurrentY))
+        (list XSize YSize ImageAux)
+        (if (= CurrentY YSize)
+            (createBaseImage (+ 1 CurrentX) 0 XSize YSize BasePix Depth ImageAux)
+            (createBaseImage CurrentX (+ CurrentY 1) XSize YSize
+                             BasePix Depth (cons (list CurrentX CurrentY BasePix Depth) ImageAux))))))
+    
+(define createBaseRGBImage
+  (lambda (CurrentX CurrentY XSize YSize R G B Depth ImageAux)
+    (if (and (= CurrentX XSize) (= 0 CurrentY))
+        (list XSize YSize ImageAux)
+        (if (= CurrentY YSize)
+            (createBaseRGBImage (+ 1 CurrentX) 0 XSize YSize R G B Depth ImageAux)
+            (createBaseRGBImage CurrentX (+ 1 CurrentY) XSize YSize
+                                R G B Depth (cons (list CurrentX CurrentY R G B Depth) ImageAux))))))
+(define getNDepth_list
+  (lambda (List NDepth AuxList)
+    (if (null? List)
+        AuxList
+        (if (= NDepth (get_pix_depth (car List)))
+            (getNDepth_list (cdr List) NDepth (cons (car List) AuxList))
+            (getNDepth_list (cdr List) NDepth AuxList)))))
+
+(define getNDepth_clear
+  (lambda (List NDepth AuxList)
+    (if (null? List)
+        AuxList
+        (if (= NDepth (get_pix_depth (car List)))
+            (getNDepth_clear (cdr List) NDepth AuxList)
+            (getNDepth_clear (cdr List) NDepth (cons (car List) AuxList))))))
+
+(define getNDepthRGB_list
+  (lambda (List NDepth AuxList)
+    (if (null? List)
+        AuxList
+        (if (= NDepth (select_pixrgb_depth (car List)))
+            (getNDepthRGB_list (cdr List) NDepth (cons (car List) AuxList))
+            (getNDepthRGB_list (cdr List) NDepth AuxList)))))
+
+(define getNDepthRGB_clear
+  (lambda (List NDepth AuxList)
+    (if (null? List)
+        AuxList
+        (if (= NDepth (get_pix_depth (car List)))
+            (getNDepthRGB_clear (cdr List) NDepth AuxList)
+            (getNDepthRGB_clear (cdr List) NDepth (cons (car List) AuxList))))))
+
+(define recImageChangePixel
+  (lambda (List NewPix)
+    (if (null? List)
+        '()
+        (if (and (= (get_pix_x (car List)) (get_pix_x NewPix))
+                 (= (get_pix_y (car List)) (get_pix_y NewPix)))
+            (cons NewPix (cdr List))
+            (cons (car List) (recImageChangePixel (cdr List) NewPix))))))
+
+(define validateICPEntries
+  (lambda (Image NewPix)
+    (if (or (and (bitmap? Image) (pixbit? NewPix)) (and (pixmap? Image) (pixrgb? NewPix))
+            (and (hexmap? Image) (pixhex? NewPix)))
+        (list (get_pix_x Image) (get_pix_y Image) (recImageChangePixel (get_image_pixels Image) NewPix))
+        #f)))
+
+(define imageChangePixel
+  (lambda (Image NewPix)
+    (if (and (> (get_pix_x Image) (get_pix_x NewPix)) (> (get_pix_y Image) (get_pix_y NewPix)))
+        (validateICPEntries Image NewPix)
+        #f)))
+
+(define insertPixList
+  (lambda (List Image)
+    (if (null? List)
+        Image
+        (insertPixList (cdr List) (imageChangePixel Image (car List))))))
+
+(define bitDepthLayers
+  (lambda (XSize YSize List AuxList)
+    (if (null? List)
+        AuxList
+        (bitDepthLayers XSize YSize
+                        (getNDepth_clear List (get_pix_depth (car List)) '())
+                        (cons (insertPixList
+                               (getNDepth_list List (get_pix_depth (car List)) '())
+                               (createBaseImage 0 0 XSize YSize 1 (get_pix_depth (car List)) '()))
+                              AuxList)))))
+
+(define rgbDepthLayers
+  (lambda (XSize YSize List AuxList)
+    (if (null? List)
+        AuxList
+        (rgbDepthLayers XSize YSize
+                        (getNDepthRGB_clear List (select_pixrgb_depth (car List)) '())
+                        (cons (insertPixList
+                               (getNDepthRGB_list List (select_pixrgb_depth (car List)) '())
+                               (createBaseRGBImage 0 0 XSize YSize 255 255 255 (select_pixrgb_depth (car List)) '()))
+                              AuxList)))))
+
+(define hexDepthLayers
+  (lambda (XSize YSize List AuxList)
+    (if (null? List)
+        AuxList
+        (hexDepthLayers XSize YSize
+                        (getNDepth_clear List (get_pix_depth (car List)) '())
+                        (cons (insertPixList
+                               (getNDepth_list List (get_pix_depth (car List)) '())
+                               (createBaseImage 0 0 XSize YSize "FFFFFF" (get_pix_depth (car List)) '()))
+                              AuxList)))))
+
+(define imageDepthLayers
+  (lambda (Image)
+    (if (bitmap? Image)
+        (bitDepthLayers (get_pix_x Image) (get_pix_y Image) (get_image_pixels Image) '())
+        (if (pixmap? Image)
+            (rgbDepthLayers (get_pix_x Image) (get_pix_y Image) (get_image_pixels Image) '())
+            (if (hexmap? Image)
+                (hexDepthLayers (get_pix_x Image) (get_pix_y Image) (get_image_pixels Image) '())
+                #f)))))
