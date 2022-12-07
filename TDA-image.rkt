@@ -434,3 +434,125 @@
   (lambda (function Image)
     (list (get_pix_x Image) (get_pix_y Image) (recEdit function (get_image_pixels Image)))))
 
+(define invertColorBit
+  (lambda (Pixbit)
+    (if (= (select_pixbit_value Pixbit) 1)
+        (mod_pixbit_value Pixbit 0)
+        (mod_pixbit_value Pixbit 1))))
+
+(define invertColorRGB
+  (lambda (Pixrgb)
+    (mod_pixrgb_blue (mod_pixrgb_green (mod_pixrgb_red Pixrgb (- 255 (select_pixrgb_red Pixrgb))) (- 255 (select_pixrgb_green Pixrgb))) (- 255 (select_pixrgb_blue Pixrgb)))))
+
+(define getPix_out
+  (lambda (CurrentX CurrentY List)
+    (if (and (= CurrentX (get_pix_x (car List)))
+             (= CurrentY (get_pix_y (car List))))
+        (car List)
+        (getPix_out CurrentX CurrentY (cdr List)))))
+
+(define getPix_clear
+  (lambda (CurrentX CurrentY List)
+    (if (null? List)
+        '()
+        (if (and (= CurrentX (get_pix_x (car List)))
+                 (= CurrentY (get_pix_y (car List))))
+            (cdr List)
+            (cons (car List) (getPix_clear CurrentX CurrentY (cdr List))))))) 
+
+(define sort_Content
+  (lambda (CurrentX CurrentY XSize YSize List)
+    (if (and (= CurrentX XSize)
+             (= CurrentY YSize))
+        '()
+        (if (= CurrentX XSize)
+            (sort_Content 0 (+ 1 CurrentY) XSize YSize List)
+            (cons (getPix_out CurrentX CurrentY List)
+                  (sort_Content (+ 1 CurrentX) CurrentY XSize YSize (getPix_clear CurrentX CurrentY List)))))))
+
+(define sort_Image
+  (lambda (Image)
+    (list (get_pix_x Image) (get_pix_y Image) (sort_Content 0 0 (get_pix_x Image) (- (get_pix_y Image) 1) (get_image_pixels Image)))))
+            
+(define bitList->string
+  (lambda (XSize List String_aux)
+    (if (null? List)
+        String_aux
+        (if (= XSize (+ 1 (get_pix_x (car List))))
+            (bitList->string
+             XSize
+             (cdr List)
+             (string-append
+              String_aux
+              (number->string (select_pixbit_value (car List)))
+              "\n"))
+            (bitList->string XSize
+                             (cdr List)
+                             (string-append String_aux
+                                            (number->string (select_pixbit_value (car List)))))))))
+                             
+(define bitmap->string
+  (lambda (Image)
+    (bitList->string (get_pix_x Image) (get_image_pixels Image) "")))
+
+(define pixList->string
+  (lambda (XSize List String_aux)
+    (if (null? List)
+        String_aux
+        (if (= XSize (+ 1 (get_pix_x (car List))))
+            (pixList->string
+             XSize
+             (cdr List)
+             (string-append
+              String_aux
+              (number->string (select_pixrgb_red (car List))) ","
+              (number->string (select_pixrgb_green (car List))) ","
+              (number->string (select_pixrgb_blue (car List)))
+              "\n"))
+            (pixList->string XSize
+                             (cdr List)
+                             (string-append String_aux
+                                            (number->string (select_pixrgb_red (car List))) ","
+                                            (number->string (select_pixrgb_green (car List))) ","
+                                            (number->string (select_pixrgb_blue (car List))) ".\t"))))))
+
+(define pixmap->string
+  (lambda (Image)
+    (pixList->string (get_pix_x Image) (get_image_pixels Image) "")))
+
+(define hexList->string
+  (lambda (XSize List String_aux)
+    (if (null? List)
+        String_aux
+        (if (= XSize (+ 1 (get_pix_x (car List))))
+            (hexList->string
+             XSize
+             (cdr List)
+             (string-append
+              String_aux
+              (select_pixhex_value (car List))
+              "\n"))
+            (hexList->string XSize
+                             (cdr List)
+                             (string-append String_aux
+                                            (select_pixhex_value (car List))
+                                            "\t"))))))
+
+(define hexmap->string
+  (lambda (Image)
+    (hexList->string (get_pix_x Image) (get_image_pixels Image) "")))
+
+(define image->stringBack
+  (lambda (Image)
+    (string-append "Ancho(X):" (number->string (get_pix_x Image)) " - Alto(Y):" (number->string (get_pix_y Image)))))
+
+(define image->string
+  (lambda (Image)
+    (if (bitmap? Image)
+        (string-append (image->stringBack Image) "\n\n" (bitmap->string (sort_Image Image)))
+        (if (pixmap? Image)
+            (string-append (image->stringBack Image) "\n\n" (pixmap->string (sort_Image Image)))
+            (if (hexmap? Image)
+                (string-append (image->stringBack Image) "\n\n" (hexmap->string (sort_Image Image)))
+                #f)))))
+
